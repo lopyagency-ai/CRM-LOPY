@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lopy CRM v3</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0b;--bg2:#111114;--bg3:#18181c;--bg4:#1f1f25;
+  --border:#2a2a32;--border2:#353540;
+  --green:#00e676;--green2:#00c853;--green-dim:rgba(0,230,118,0.12);--green-dim2:rgba(0,230,118,0.06);
+  --text:#f0f0f0;--text2:#a0a0b0;--text3:#60606a;
+  --red:#ff4d4d;--red-dim:rgba(255,77,77,0.1);
+  --amber:#ffb300;--amber-dim:rgba(255,179,0,0.1);
+  --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.1);
+  --purple:#7c3aed;--purple-dim:rgba(124,58,237,0.12);
+  --radius:10px;--radius2:6px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+h1,h2,h3,.logo{font-family:'Syne',sans-serif}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
+.main{margin-left:220px;flex:1;min-height:100vh}
+.logo-wrap{padding:24px 20px 16px;border-bottom:1px solid var(--border)}
+.logo{font-size:20px;font-weight:800;letter-spacing:-0.5px;color:var(--green)}
+.logo span{color:var(--text3);font-weight:400;font-size:11px;display:block;margin-top:2px;font-family:'Inter',sans-serif;letter-spacing:1px;text-transform:uppercase}
+.nav{padding:12px 0;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:var(--text2);transition:all .15s;font-size:13px;font-weight:500;border-left:2px solid transparent}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:var(--green);border-left-color:var(--green);background:var(--green-dim2)}
+.nav-icon{width:16px;height:16px;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-bottom{padding:16px 20px;border-top:1px solid var(--border)}
+.user-pill{display:flex;align-items:center;gap:8px}
+.avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#00e676);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.user-name{font-size:12px;font-weight:500;color:var(--text2)}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.page-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius2);border:1px solid var(--border2);background:var(--bg3);color:var(--text);cursor:pointer;font-size:13px;font-weight:500;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg4)}
+.btn-green{background:var(--green);color:#000;border-color:var(--green);font-weight:600}
+.btn-green:hover{background:var(--green2);border-color:var(--green2)}
+.btn-outline-green{border-color:var(--green);color:var(--green);background:var(--green-dim2)}
+.btn-outline-green:hover{background:var(--green-dim)}
+.btn-red{background:var(--red-dim);color:var(--red);border-color:var(--red);font-weight:600}
+.btn-red:hover{background:rgba(255,77,77,0.2)}
+.btn-purple{background:var(--purple-dim);color:#a78bfa;border-color:var(--purple);font-weight:600}
+.btn-purple:hover{background:rgba(124,58,237,0.2)}
+.btn-amber{background:var(--amber-dim);color:var(--amber);border-color:var(--amber);font-weight:600}
+.btn-sm{padding:5px 10px;font-size:11px}
+.content{padding:28px 32px}
+
+/* METRICS */
+.metrics-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:28px}
+.metric-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.metric-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.metric-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--text);line-height:1}
+.metric-sub{font-size:10px;color:var(--text3);margin-top:5px}
+.metric-green{color:var(--green)}
+.metric-amber{color:var(--amber)}
+.metric-purple{color:#a78bfa}
+.metric-blue{color:var(--blue)}
+
+/* DASHBOARD CHARTS */
+.dash-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:28px}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.chart-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.chart-subtitle{font-size:11px;color:var(--text3);font-weight:400;font-family:'Inter',sans-serif}
+.conversion-stats{display:flex;flex-direction:column;gap:12px}
+.conv-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2)}
+.conv-label{font-size:12px;color:var(--text2)}
+.conv-value{font-family:'Syne',sans-serif;font-size:18px;font-weight:700}
+.conv-green{color:var(--green)}
+.conv-amber{color:var(--amber)}
+.conv-blue{color:var(--blue)}
+.conv-purple{color:#a78bfa}
+
+/* MEETINGS TOGGLE */
+.meetings-filter{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.toggle-group{display:flex;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:3px;gap:2px}
+.toggle-btn{padding:5px 14px;border-radius:4px;border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;transition:all .15s}
+.toggle-btn.active{background:var(--bg4);color:var(--text);border:1px solid var(--border2)}
+.toggle-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+
+/* KANBAN */
+.kanban-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.kanban-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+.kanban-wrap{display:flex;gap:12px;overflow-x:auto;padding-bottom:16px}
+.kanban-wrap::-webkit-scrollbar{height:4px}
+.kanban-wrap::-webkit-scrollbar-track{background:var(--bg2)}
+.kanban-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.kanban-col{min-width:195px;flex-shrink:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .2s}
+.kanban-col.remarketing-col{border-color:var(--purple);background:var(--purple-dim)}
+.kanban-col.drag-over{border-color:var(--green);background:var(--green-dim2)}
+.col-header{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.remarketing-col .col-header{border-bottom-color:rgba(124,58,237,0.3)}
+.col-name{font-size:12px;font-weight:600;font-family:'Syne',sans-serif}
+.col-count{background:var(--bg3);color:var(--text3);font-size:11px;padding:2px 7px;border-radius:20px;font-weight:600}
+.remarketing-col .col-count{background:var(--purple-dim);color:#a78bfa}
+.col-cards{padding:10px;display:flex;flex-direction:column;gap:8px;min-height:80px}
+.lead-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:12px;cursor:grab;transition:all .15s;position:relative}
+.lead-card:hover{border-color:var(--border2);background:var(--bg4)}
+.lead-card.dragging{opacity:.5;cursor:grabbing}
+.lead-card.remarketing-card{border-color:rgba(124,58,237,0.4);background:rgba(124,58,237,0.06)}
+.card-empresa{font-weight:600;font-size:13px;color:var(--text);margin-bottom:3px;padding-right:40px}
+.card-contato{font-size:11px;color:var(--text2)}
+.card-responsavel{font-size:10px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:4px}
+.card-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.lead-card:hover .card-actions{opacity:1}
+.card-action-btn{width:22px;height:22px;border-radius:4px;border:1px solid var(--border);background:var(--bg2);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .15s;padding:0}
+.card-action-btn:hover{background:var(--bg4);color:var(--text)}
+.card-action-btn.del:hover{background:var(--red-dim);color:var(--red);border-color:var(--red)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.dot.amber{background:var(--amber)}
+.dot.blue{background:var(--blue)}
+.dot.purple{background:var(--purple)}
+.status-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.s-novo{background:rgba(59,130,246,.15);color:#60a5fa}
+.s-contato{background:rgba(255,179,0,.12);color:var(--amber)}
+.s-interessado{background:rgba(167,139,250,.15);color:#a78bfa}
+.s-reuniao{background:rgba(0,230,118,.12);color:var(--green)}
+.s-proposta{background:rgba(255,138,0,.12);color:#ff8a00}
+.s-fechado{background:rgba(0,230,118,.2);color:var(--green)}
+.s-perdido{background:rgba(255,77,77,.12);color:var(--red)}
+.s-remarketing{background:var(--purple-dim);color:#a78bfa}
+
+/* COLD CALL FORM */
+.form-wrap{max-width:700px}
+.form-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px}
+.form-section-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.section-num{background:var(--green);color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-row.full{grid-template-columns:1fr}
+.field{display:flex;flex-direction:column;gap:6px}
+label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+input,textarea,select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:10px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;transition:all .15s;outline:none;width:100%}
+input:focus,textarea:focus,select:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-dim)}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+select option{background:var(--bg3);color:var(--text)}
+textarea{resize:vertical;min-height:80px;line-height:1.6}
+.field-hint{font-size:10px;color:var(--text3);margin-top:3px}
+
+/* OPTION BUTTONS (substituem selects) */
+.option-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.opt-btn{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
+.opt-btn:hover{border-color:var(--border2);color:var(--text)}
+.opt-btn.selected{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.opt-btn.selected-amber{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.opt-btn.selected-red{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.opt-btn.selected-purple{border-color:var(--purple);color:#a78bfa;background:var(--purple-dim)}
+.opt-btn.selected-blue{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+
+/* REACTION SCALE */
+.reaction-scale{display:flex;gap:4px;margin-top:4px}
+.react-opt{flex:1;padding:8px 4px;border-radius:var(--radius2);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:11px;font-weight:500;font-family:'Inter',sans-serif;transition:all .15s;text-align:center;line-height:1.3}
+.react-opt:hover{border-color:var(--border2)}
+.react-opt.sel-verde{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.react-opt.sel-morno{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.react-opt.sel-frio{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+.react-opt.sel-ruim{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+
+/* SCRIPT EDITÁVEL */
+.script-wrap{background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:var(--radius2);padding:16px;margin-bottom:14px}
+.script-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:500;display:flex;align-items:center;justify-content:space-between}
+.script-edit-hint{font-size:10px;color:var(--text3);font-family:'Inter',sans-serif;text-transform:none;letter-spacing:0}
+.script-step{margin-bottom:10px}
+.script-step strong{color:var(--text);font-weight:600;display:block;margin-bottom:4px;font-size:12px}
+.script-text{font-size:12px;line-height:1.8;color:var(--text2);background:transparent;border:1px dashed transparent;border-radius:4px;padding:4px 6px;width:100%;resize:none;min-height:50px;font-family:'Inter',sans-serif;transition:all .15s;outline:none}
+.script-text:hover{border-color:var(--border);background:var(--bg4)}
+.script-text:focus{border-color:var(--green);background:var(--bg4);box-shadow:0 0 0 2px var(--green-dim)}
+
+/* REMARKETING ALERT */
+.remarketing-alert{display:none;background:var(--purple-dim);border:1px solid var(--purple);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;animation:fadeIn .3s ease}
+.remarketing-alert.visible{display:flex;align-items:flex-start;gap:14px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.alert-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+.alert-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:#a78bfa;margin-bottom:4px}
+.alert-body{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.alert-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* SECRETARIA SCRIPT BOX */
+.secretaria-script{display:none;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.35);border-radius:var(--radius2);padding:16px;margin-bottom:14px;animation:fadeIn .3s ease}
+.secretaria-script.visible{display:block}
+.sec-script-label{font-family:'DM Mono',monospace;font-size:10px;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:500}
+.sec-script-text{font-size:12px;color:var(--text2);line-height:1.7;background:transparent;border:1px dashed transparent;border-radius:4px;padding:4px 6px;width:100%;resize:none;min-height:80px;font-family:'Inter',sans-serif;transition:all .15s;outline:none}
+.sec-script-text:hover{border-color:rgba(124,58,237,0.4);background:rgba(124,58,237,0.04)}
+.sec-script-text:focus{border-color:rgba(124,58,237,0.6);background:rgba(124,58,237,0.04)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:580px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:2}
+.modal-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px}
+.modal-header-actions{display:flex;align-items:center;gap:8px}
+.modal-body{padding:24px}
+.close-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:4px}
+.close-btn:hover{color:var(--text)}
+.detail-row{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.detail-field{flex:1;min-width:130px}
+.detail-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.detail-value{font-size:13px;color:var(--text)}
+.detail-area{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:12px;font-size:13px;color:var(--text2);line-height:1.6}
+.stage-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.stage-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:11px;font-weight:600;font-family:'Inter',sans-serif;transition:all .15s}
+.stage-btn:hover{border-color:var(--border2);color:var(--text)}
+.stage-btn.active-stage{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.stage-btn.remarketing-stage{border-color:var(--purple);color:#a78bfa;background:var(--purple-dim)}
+.copy-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius2);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:12px;font-weight:500;font-family:'Inter',sans-serif;transition:all .15s;width:100%;justify-content:center;margin-top:16px}
+.copy-btn:hover{border-color:var(--green);color:var(--green);background:var(--green-dim2)}
+.copy-btn.copied{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.section-divider{border:none;border-top:1px solid var(--border);margin:18px 0}
+
+/* EDIT MODAL */
+.edit-field-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.edit-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.edit-input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:10px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;transition:all .15s;outline:none;width:100%}
+.edit-input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-dim)}
+.edit-textarea{resize:vertical;min-height:70px;line-height:1.5}
+.edit-select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:10px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;width:100%;cursor:pointer}
+
+/* CONFIG */
+.config-form{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:560px}
+.config-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-bottom:20px}
+.config-note{font-size:12px;color:var(--text3);line-height:1.6;margin-top:6px}
+.separator{border:none;border-top:1px solid var(--border);margin:24px 0}
+.conn-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);padding:6px 10px;background:var(--bg3);border-radius:var(--radius2);border:1px solid var(--border)}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--text3)}
+.conn-dot.green{background:var(--green)}
+.conn-dot.red{background:var(--red)}
+.empty-col{text-align:center;padding:20px 10px;color:var(--text3);font-size:11px}
+.remarketing-banner{background:var(--purple-dim);border:1px solid rgba(124,58,237,0.35);border-radius:var(--radius2);padding:8px 12px;margin-bottom:8px;font-size:11px;color:#a78bfa;font-weight:500;display:flex;align-items:center;gap:6px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--green);border-radius:var(--radius2);padding:12px 18px;font-size:13px;color:var(--green);font-weight:500;z-index:500;transform:translateY(80px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* CONFIRM DIALOG */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;align-items:center;justify-content:center}
+.confirm-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:360px;width:100%;margin:24px}
+.confirm-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:10px}
+.confirm-msg{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px}
+.confirm-actions{display:flex;gap:10px}
+
+/* CALL COUNTER */
+.call-counter-row{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius)}
+.call-count-display{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--green);min-width:60px}
+.call-count-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.call-count-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.call-count-actions{display:flex;gap:6px;margin-left:auto}
+.count-btn{width:32px;height:32px;border-radius:var(--radius2);border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;transition:all .15s}
+.count-btn:hover{background:var(--bg4)}
+.count-btn.plus:hover{border-color:var(--green);color:var(--green)}
+.count-btn.minus:hover{border-color:var(--red);color:var(--red)}
+
+/* PROGRESS BAR */
+.progress-bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden}
+.progress-bar-fill{height:100%;background:var(--green);border-radius:2px;transition:width .5s ease}
+
+/* MEETINGS FILTER CHIPS */
+.filter-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer;font-size:11px;font-weight:600;font-family:'Inter',sans-serif;transition:all .15s}
+.chip:hover{color:var(--text);border-color:var(--border2)}
+.chip.active{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.chip.active-amber{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.chip.active-purple{border-color:var(--purple);color:#a78bfa;background:var(--purple-dim)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo-wrap">
+      <div class="logo">LOPY<span>CRM — v3.0</span></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="setPage('dashboard')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="setPage('pipeline')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+        Pipeline
+      </div>
+      <div class="nav-item" onclick="setPage('coldcall')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 10.5c0 .3-.07.58-.21.85s-.33.51-.58.72c-.43.38-.9.56-1.39.56-.15 0-.3-.02-.46-.05a8.5 8.5 0 01-.49-.13 9.1 9.1 0 01-.56-.22c-.2-.09-.44-.22-.74-.39-.3-.17-.64-.4-1.02-.69-.38-.29-.77-.63-1.17-1.02-.4-.4-.74-.8-1.03-1.18-.29-.38-.52-.73-.69-1.03s-.3-.54-.38-.74a7.5 7.5 0 01-.23-.56 5 5 0 01-.12-.48A2.6 2.6 0 012.5 5.2c0-.48.17-.95.54-1.39.36-.44.79-.66 1.26-.66.18 0 .35.04.5.12.16.08.3.2.41.37l1.39 1.96c.11.16.19.3.24.44.05.14.08.27.08.39 0 .16-.04.32-.13.47-.09.16-.21.32-.37.48l-.51.53a.36.36 0 00-.11.27c0 .05 0 .1.02.15.02.05.04.09.05.12.11.2.28.44.52.72.24.28.49.56.75.83.27.26.55.51.83.75.28.23.52.4.72.51.03.01.07.03.12.05.05.02.1.02.16.02a.37.37 0 00.28-.12l.51-.52c.16-.16.32-.28.48-.37.15-.09.31-.13.47-.13.12 0 .24.02.38.07.14.05.29.13.44.24l1.99 1.41c.17.12.29.26.37.43.07.17.11.34.11.53z"/></svg>
+        Cold Call
+      </div>
+      <div class="nav-item" onclick="setPage('config')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.42 1.42M11.53 11.53l1.42 1.42M3.05 12.95l1.42-1.42M11.53 4.47l1.42-1.42"/></svg>
+        Configurar
+      </div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="user-pill">
+        <div class="avatar">LC</div>
+        <div class="user-name">Lopy Agency</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <span class="page-title" id="page-title">Dashboard</span>
+      <div class="topbar-right">
+        <div class="conn-status" id="conn-status">
+          <div class="conn-dot" id="conn-dot"></div>
+          <span id="conn-label">Verificando...</span>
+        </div>
+        <button class="btn btn-green" onclick="setPage('coldcall')">+ Nova Ligação</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="content">
+      <div class="metrics-row">
+        <div class="metric-card"><div class="metric-label">Total Leads</div><div class="metric-value" id="m-total">0</div><div class="metric-sub">registros ativos</div></div>
+        <div class="metric-card">
+          <div class="metric-label">Ligações Feitas</div>
+          <div class="metric-value metric-blue" id="m-ligacoes">0</div>
+          <div class="metric-sub">nesta sessão</div>
+        </div>
+        <div class="metric-card"><div class="metric-label">Reuniões</div><div class="metric-value metric-green" id="m-reuniao">0</div><div class="metric-sub">agendadas</div></div>
+        <div class="metric-card"><div class="metric-label">Propostas</div><div class="metric-value metric-amber" id="m-proposta">0</div><div class="metric-sub">em aberto</div></div>
+        <div class="metric-card"><div class="metric-label">Fechamentos</div><div class="metric-value metric-green" id="m-fechado">0</div><div class="metric-sub">este mês</div></div>
+        <div class="metric-card"><div class="metric-label">Remarketing</div><div class="metric-value metric-purple" id="m-remarketing">0</div><div class="metric-sub">em aquecimento</div></div>
+      </div>
+
+      <!-- CHARTS -->
+      <div class="dash-grid">
+        <div class="chart-card">
+          <div class="chart-title">
+            Funil de Conversão
+            <span class="chart-subtitle" id="conversion-rate-label"></span>
+          </div>
+          <div id="funnelChart" style="width:100%;height:180px;position:relative"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Métricas Chave</div>
+          <div class="conversion-stats" id="conversion-stats"></div>
+        </div>
+      </div>
+
+      <!-- REUNIOES FILTER + KANBAN -->
+      <div class="kanban-header">
+        <span class="kanban-title">Pipeline de Vendas</span>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="toggle-label">Reuniões:</div>
+          <div class="toggle-group">
+            <button class="toggle-btn active" id="filter-all" onclick="setMeetingFilter('all')">Todos</button>
+            <button class="toggle-btn" id="filter-sim" onclick="setMeetingFilter('sim')">✓ Marcadas</button>
+            <button class="toggle-btn" id="filter-nao" onclick="setMeetingFilter('nao')">✗ Não Marcadas</button>
+          </div>
+          <button class="btn btn-outline-green btn-sm" onclick="loadLeads()">↻</button>
+        </div>
+      </div>
+      <div class="kanban-wrap" id="kanban-board"></div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div id="page-pipeline" class="content" style="display:none">
+      <div class="kanban-header">
+        <span class="kanban-title">Pipeline Completo</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="filter-chips" id="pipeline-filter-chips"></div>
+          <button class="btn btn-outline-green btn-sm" onclick="loadLeads()">↻ Atualizar</button>
+        </div>
+      </div>
+      <div class="kanban-wrap" id="kanban-board-2"></div>
+    </div>
+
+    <!-- COLD CALL -->
+    <div id="page-coldcall" class="content" style="display:none">
+      <div class="form-wrap">
+
+        <!-- REMARKETING ALERT -->
+        <div class="remarketing-alert" id="remarketing-alert">
+          <div class="alert-icon">🎯</div>
+          <div style="flex:1">
+            <div class="alert-title">Jogar para Remarketing?</div>
+            <div class="alert-body">Perfil de secretária com reação negativa detectado. Esse contato ainda pode ser convertido via remarketing — anúncios segmentados que chegam direto no decisor sem depender de gatekeepers.</div>
+            <div class="alert-actions">
+              <button class="btn btn-purple" id="btn-remarketing-confirm">🎯 Salvar como Remarketing</button>
+              <button class="btn" onclick="dismissRemarketingAlert()">Ignorar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCRIPT EDITÁVEL -->
+        <div class="form-section" style="margin-bottom:20px">
+          <div class="form-section-title"><div class="section-num">✦</div>Script de Abordagem <span style="font-size:10px;color:var(--text3);font-weight:400;font-family:'Inter',sans-serif;text-transform:none;letter-spacing:0;margin-left:4px">(clique no texto para editar)</span></div>
+
+          <!-- Script padrão (dono) -->
+          <div id="script-default">
+            <div class="script-wrap">
+              <div class="script-label">Guia de Ligação — Lopy Agency <span class="script-edit-hint">✎ editável</span></div>
+              <div class="script-step">
+                <strong>1. Quebra de gelo</strong>
+                <textarea class="script-text" id="script-1" rows="2">"Oi, tudo bem? Meu nome é [nome], sou da Lopy — uma agência aqui do Sul. Vi que vocês são de [cidade], queria bater um papo rápido sobre o negócio."</textarea>
+              </div>
+              <div class="script-step">
+                <strong>2. Contexto rápido</strong>
+                <textarea class="script-text" id="script-2" rows="2">"A gente trabalha com marketing estratégico pra negócios locais — não sou vendedor de anúncio, quero entender se faz sentido pra vocês."</textarea>
+              </div>
+              <div class="script-step">
+                <strong>3. Diagnóstico</strong>
+                <textarea class="script-text" id="script-3" rows="2">"Como vocês estão captando clientes hoje? Vem mais por indicação, Instagram, Google...?"</textarea>
+              </div>
+              <div class="script-step">
+                <strong>4. Gargalo</strong>
+                <textarea class="script-text" id="script-4" rows="2">"E o que você sente que tá faltando pra vender mais?"</textarea>
+              </div>
+              <div class="script-step">
+                <strong>5. Transição</strong>
+                <textarea class="script-text" id="script-5" rows="2">"Faz sentido marcar 20 minutos pra eu mostrar o que a gente tem feito com negócios parecidos?"</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Script secretária (aparece automaticamente) -->
+          <div class="secretaria-script" id="script-secretaria">
+            <div class="sec-script-label">🔒 Script — Contorno de Secretária</div>
+            <div class="script-step">
+              <strong style="font-size:12px;color:#a78bfa;display:block;margin-bottom:4px">1. Identificação leve</strong>
+              <textarea class="sec-script-text" id="sec-script-1" rows="2">"Oi, tudo bem? Posso falar com o responsável pelo marketing ou com o dono? É uma ligação rápida."</textarea>
+            </div>
+            <div class="script-step">
+              <strong style="font-size:12px;color:#a78bfa;display:block;margin-bottom:4px">2. Se pedir assunto</strong>
+              <textarea class="sec-script-text" id="sec-script-2" rows="2">"É sobre estratégia de captação de clientes pra empresa — quero entender se faz sentido conversar com ele/ela diretamente."</textarea>
+            </div>
+            <div class="script-step">
+              <strong style="font-size:12px;color:#a78bfa;display:block;margin-bottom:4px">3. Se não passar (gatekeeping)</strong>
+              <textarea class="sec-script-text" id="sec-script-3" rows="2">"Tudo bem! Qual o melhor horário pra falar diretamente com ele/ela? Posso ligar de volta."</textarea>
+            </div>
+            <!-- BOTÃO DE REMARKETING DA SECRETARIA -->
+            <div id="btn-remarketing-secretaria-wrap" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(124,58,237,0.25)">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Secretária recusou o contato?</div>
+              <button class="btn btn-purple" onclick="saveAsRemarketingFromSecretaria()" style="width:100%;justify-content:center">
+                🎯 Solicitar Contato via Remarketing
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <form id="coldcall-form" onsubmit="handleFormSubmit(event)">
+
+          <!-- CONTADOR DE LIGAÇÕES -->
+          <div class="call-counter-row">
+            <div>
+              <div class="call-count-display" id="call-count-display">0</div>
+              <div class="call-count-label">Ligações hoje</div>
+              <div class="call-count-sub" id="call-count-sub">Nenhuma ligação registrada</div>
+            </div>
+            <div class="call-count-actions">
+              <button type="button" class="count-btn minus" onclick="adjustCallCount(-1)" title="Remover ligação">−</button>
+              <button type="button" class="count-btn plus" onclick="adjustCallCount(1)" title="Adicionar ligação">+</button>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><div class="section-num">1</div>Identificação</div>
+            <div class="form-row">
+              <div class="field"><label>Nome da Empresa *</label><input type="text" id="f-empresa" placeholder="Ex: Casa Moda Store" required oninput="updateScript()"></div>
+              <div class="field"><label>Nome do Contato *</label><input type="text" id="f-contato" placeholder="Ex: Carlos Oliveira" required></div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label>Perfil do Contato</label>
+                <div class="option-group" id="opt-perfil">
+                  <button type="button" class="opt-btn" data-val="dono" onclick="selectOpt(this,'opt-perfil','f-perfil-val','')">👑 Dono / Sócio</button>
+                  <button type="button" class="opt-btn" data-val="comercial" onclick="selectOpt(this,'opt-perfil','f-perfil-val','')">💼 Gerente Comercial</button>
+                  <button type="button" class="opt-btn" data-val="secretaria" onclick="selectOpt(this,'opt-perfil','f-perfil-val','')">📞 Secretária / Recepção</button>
+                  <button type="button" class="opt-btn" data-val="marketing" onclick="selectOpt(this,'opt-perfil','f-perfil-val','')">📱 Marketing</button>
+                </div>
+                <input type="hidden" id="f-perfil-val">
+              </div>
+              <div class="field"><label>Responsável (SDR)</label><input type="text" id="f-responsavel" placeholder="Seu nome"></div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><div class="section-num">2</div>Diagnóstico</div>
+            <div class="form-row full"><div class="field"><label>Como captam clientes hoje?</label><textarea id="f-captacao" placeholder="Ex: Indicação, Instagram orgânico, boca a boca..."></textarea></div></div>
+            <div class="form-row full"><div class="field"><label>Maior Gargalo</label><textarea id="f-gargalo" placeholder="Ex: Não tem previsibilidade de clientes novos..."></textarea></div></div>
+
+            <div class="form-row">
+              <div class="field">
+                <label>Reação à abordagem</label>
+                <div class="reaction-scale">
+                  <button type="button" class="react-opt" data-val="muito_aberto" onclick="selectReacao(this)">🔥<br>Muito aberto</button>
+                  <button type="button" class="react-opt" data-val="aberto" onclick="selectReacao(this)">😊<br>Aberto</button>
+                  <button type="button" class="react-opt" data-val="neutro" onclick="selectReacao(this)">😐<br>Neutro</button>
+                  <button type="button" class="react-opt" data-val="resistente" onclick="selectReacao(this)">😤<br>Resistente</button>
+                  <button type="button" class="react-opt" data-val="nao_atendeu" onclick="selectReacao(this)">📵<br>Não atendeu</button>
+                </div>
+                <input type="hidden" id="f-reacao-val">
+              </div>
+              <div class="field">
+                <label>Maturidade do Lead</label>
+                <div class="option-group" id="opt-maturidade">
+                  <button type="button" class="opt-btn" data-val="quente" onclick="selectOpt(this,'opt-maturidade','f-maturidade-val','')">🔥 Quente</button>
+                  <button type="button" class="opt-btn" data-val="morno" onclick="selectOpt(this,'opt-maturidade','f-maturidade-val','amber')">☀️ Morno</button>
+                  <button type="button" class="opt-btn" data-val="frio" onclick="selectOpt(this,'opt-maturidade','f-maturidade-val','blue')">❄️ Frio</button>
+                </div>
+                <input type="hidden" id="f-maturidade-val">
+              </div>
+            </div>
+
+            <div class="form-row full"><div class="field"><label>Objeção identificada</label>
+              <div class="option-group" id="opt-objecao" style="margin-bottom:8px">
+                <button type="button" class="opt-btn" data-val="Já tem agência" onclick="selectObjecao(this)">Já tem agência</button>
+                <button type="button" class="opt-btn" data-val="Sem budget agora" onclick="selectObjecao(this)">Sem budget</button>
+                <button type="button" class="opt-btn" data-val="Não é o decisor" onclick="selectObjecao(this)">Não é o decisor</button>
+                <button type="button" class="opt-btn" data-val="Não tem interesse" onclick="selectObjecao(this)">Sem interesse</button>
+                <button type="button" class="opt-btn" data-val="Quer pensar" onclick="selectObjecao(this)">Quer pensar</button>
+              </div>
+              <input type="text" id="f-objecao" placeholder="Ou descreva outra objeção...">
+            </div></div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title"><div class="section-num">3</div>Resumo & Próximo Passo</div>
+            <div class="form-row full"><div class="field"><label>Resumo da conversa *</label><textarea id="f-resumo" style="min-height:100px" placeholder="Descreva brevemente como foi a ligação..." required></textarea></div></div>
+            <div class="form-row full"><div class="field">
+              <label>Próximo passo</label>
+              <div class="option-group" id="opt-proximo" style="margin-bottom:8px">
+                <button type="button" class="opt-btn" data-val="Reunião agendada" onclick="selectProximo(this)">📅 Reunião agendada</button>
+                <button type="button" class="opt-btn" data-val="Enviar proposta" onclick="selectProximo(this)">📄 Enviar proposta</button>
+                <button type="button" class="opt-btn" data-val="Ligar novamente" onclick="selectProximo(this)">📞 Ligar novamente</button>
+                <button type="button" class="opt-btn" data-val="Enviar WhatsApp" onclick="selectProximo(this)">💬 WhatsApp</button>
+              </div>
+              <input type="text" id="f-proximo" placeholder="Detalhe o próximo passo...">
+            </div></div>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:4px">
+            <button type="submit" class="btn btn-green" style="flex:1;justify-content:center;padding:12px">💾 Salvar Lead no CRM</button>
+            <button type="button" class="btn" onclick="clearForm()">Limpar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div id="page-config" class="content" style="display:none">
+      <div class="config-form">
+        <div class="config-title">Configurar Supabase</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.7">Conecte seu banco de dados Supabase. Crie a tabela <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace">leads</code> antes de continuar.</p>
+        <div class="field" style="margin-bottom:14px">
+          <label>Supabase URL</label>
+          <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co">
+          <div class="config-note">Project Settings → API → Project URL</div>
+        </div>
+        <div class="field" style="margin-bottom:20px">
+          <label>Anon Key (public)</label>
+          <input type="text" id="cfg-key" placeholder="eyJhbGci...">
+          <div class="config-note">Project Settings → API → anon public</div>
+        </div>
+        <button class="btn btn-green" onclick="saveConfig()" style="width:100%;justify-content:center;padding:12px">Conectar e Testar</button>
+        <hr class="separator">
+        <div class="config-title" style="font-size:14px;margin-bottom:12px">Schema SQL</div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);line-height:1.8;overflow-x:auto">
+create table leads (<br>
+&nbsp;&nbsp;id uuid default gen_random_uuid() primary key,<br>
+&nbsp;&nbsp;empresa text not null,<br>
+&nbsp;&nbsp;nome_contato text,<br>
+&nbsp;&nbsp;perfil text,<br>
+&nbsp;&nbsp;captacao text,<br>
+&nbsp;&nbsp;gargalo text,<br>
+&nbsp;&nbsp;reacao text,<br>
+&nbsp;&nbsp;maturidade text,<br>
+&nbsp;&nbsp;objecao text,<br>
+&nbsp;&nbsp;resumo text,<br>
+&nbsp;&nbsp;proximo_passo text,<br>
+&nbsp;&nbsp;status text default 'Novo',<br>
+&nbsp;&nbsp;responsavel text,<br>
+&nbsp;&nbsp;created_at timestamptz default now()<br>
+);<br><br>
+<span style="color:var(--green)">-- Habilitar acesso público</span><br>
+alter table leads enable row level security;<br>
+create policy "Public access" on leads for all using (true);
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL DETALHES / EDITAR -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Detalhes do Lead</span>
+      <div class="modal-header-actions">
+        <button class="btn btn-sm" id="modal-edit-btn" onclick="toggleEditMode()">✎ Editar</button>
+        <button class="close-btn" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- CONFIRM -->
+<div class="confirm-overlay" id="confirm-overlay" style="display:none">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirm-title">Confirmar ação</div>
+    <div class="confirm-msg" id="confirm-msg">Tem certeza?</div>
+    <div class="confirm-actions">
+      <button class="btn btn-red" id="confirm-yes">Confirmar</button>
+      <button class="btn" onclick="closeConfirm()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STAGES=[
+  {key:'Novo',label:'Novo Lead',cls:'s-novo'},
+  {key:'Contato',label:'Contato',cls:'s-contato'},
+  {key:'Interessado',label:'Interessado',cls:'s-interessado'},
+  {key:'Reunião',label:'Reunião',cls:'s-reuniao'},
+  {key:'Proposta',label:'Proposta',cls:'s-proposta'},
+  {key:'Fechado',label:'Fechado ✓',cls:'s-fechado'},
+  {key:'Perdido',label:'Perdido',cls:'s-perdido'},
+  {key:'Remarketing',label:'Remarketing 🎯',cls:'s-remarketing'},
+];
+
+let supabaseClient=null;
+let allLeads=[];
+let config={url:'',key:''};
+let callCount=parseInt(localStorage.getItem('lopy_calls_today')||'0');
+let meetingFilter='all';
+let pipelineFilter='all';
+let currentModalLead=null;
+let isEditMode=false;
+let funnelChart=null; // unused, kept for compat
+
+// ── CALL COUNTER ────────────────────────────────────────────────────
+function adjustCallCount(delta){
+  callCount=Math.max(0,callCount+delta);
+  localStorage.setItem('lopy_calls_today',callCount);
+  updateCallCountDisplay();
+  updateMetrics();
+}
+function updateCallCountDisplay(){
+  document.getElementById('call-count-display').textContent=callCount;
+  const reunioes=allLeads.filter(l=>l.status==='Reunião').length;
+  const sub=callCount>0?`Taxa reunião: ${callCount>0?Math.round((reunioes/callCount)*100):0}% (${reunioes}/${callCount})`:'Nenhuma ligação registrada';
+  document.getElementById('call-count-sub').textContent=sub;
+  document.getElementById('m-ligacoes').textContent=callCount;
+}
+
+// ── OPTION BUTTONS ─────────────────────────────────────────────────
+function selectOpt(btn,groupId,hiddenId,colorClass){
+  document.querySelectorAll('#'+groupId+' .opt-btn').forEach(b=>{
+    b.classList.remove('selected','selected-amber','selected-blue','selected-red','selected-purple');
+  });
+  const cls=colorClass?'selected-'+colorClass:'selected';
+  btn.classList.add(cls);
+  document.getElementById(hiddenId).value=btn.dataset.val;
+  checkRemarketingTrigger();
+}
+
+function selectReacao(btn){
+  document.querySelectorAll('.react-opt').forEach(b=>b.classList.remove('sel-verde','sel-morno','sel-frio','sel-ruim'));
+  const v=btn.dataset.val;
+  const cls=v==='muito_aberto'||v==='aberto'?'sel-verde':v==='neutro'?'sel-morno':v==='resistente'?'sel-ruim':'sel-frio';
+  btn.classList.add(cls);
+  document.getElementById('f-reacao-val').value=v;
+  checkRemarketingTrigger();
+}
+
+function selectObjecao(btn){
+  document.querySelectorAll('#opt-objecao .opt-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('f-objecao').value=btn.dataset.val;
+}
+
+function selectProximo(btn){
+  document.querySelectorAll('#opt-proximo .opt-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('f-proximo').value=btn.dataset.val;
+}
+
+// ── SCRIPT DINÂMICO ────────────────────────────────────────────────
+function updateScript(){
+  const empresa=document.getElementById('f-empresa').value;
+  if(!empresa)return;
+  // Auto-atualiza referências [empresa] nos scripts
+  ['script-1','script-2','script-3','script-4','script-5'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&el.dataset.original){
+      el.value=el.dataset.original.replace(/\[empresa\]/g,empresa);
+    }
+  });
+}
+
+// ── REMARKETING TRIGGER ─────────────────────────────────────────────
+function checkRemarketingTrigger(){
+  const perfil=document.getElementById('f-perfil-val').value;
+  const reacao=document.getElementById('f-reacao-val').value;
+  const isSecretaria=perfil==='secretaria';
+  const isNegativo=reacao==='resistente'||reacao==='nao_atendeu';
+
+  // Mostrar script secretária se selecionou secretária
+  const secScript=document.getElementById('script-secretaria');
+  if(isSecretaria){
+    secScript.classList.add('visible');
+    document.getElementById('script-default').style.display='none';
+  }else{
+    secScript.classList.remove('visible');
+    document.getElementById('script-default').style.display='block';
+  }
+
+  // Alert de remarketing
+  const alert=document.getElementById('remarketing-alert');
+  if(isSecretaria&&isNegativo){
+    alert.classList.add('visible');
+    document.getElementById('btn-remarketing-confirm').onclick=saveAsRemarketing;
+  }else{
+    alert.classList.remove('visible');
+  }
+}
+
+function dismissRemarketingAlert(){
+  document.getElementById('remarketing-alert').classList.remove('visible');
+}
+
+function saveAsRemarketing(){
+  const empresa=document.getElementById('f-empresa').value;
+  if(!empresa){showToast('Preencha o nome da empresa primeiro.');return;}
+  const lead=buildLeadFromForm();
+  lead.status='Remarketing';
+  lead.maturidade=lead.maturidade||'frio';
+  adjustCallCount(1);
+  saveLead(lead,'🎯 Jogado para Remarketing!');
+  document.getElementById('remarketing-alert').classList.remove('visible');
+}
+
+function saveAsRemarketingFromSecretaria(){
+  const empresa=document.getElementById('f-empresa').value;
+  if(!empresa){showToast('Preencha o nome da empresa primeiro.');return;}
+  const lead=buildLeadFromForm();
+  lead.status='Remarketing';
+  lead.perfil='secretaria';
+  lead.maturidade='frio';
+  lead.resumo=lead.resumo||(document.getElementById('f-empresa').value+' — Secretária recusou contato. Enviar para remarketing segmentado.');
+  adjustCallCount(1);
+  saveLead(lead,'🎯 Enviado para Remarketing via Secretária!');
+}
+
+// ── FORM ───────────────────────────────────────────────────────────
+function buildLeadFromForm(){
+  return{
+    empresa:document.getElementById('f-empresa').value,
+    nome_contato:document.getElementById('f-contato').value,
+    perfil:document.getElementById('f-perfil-val').value,
+    responsavel:document.getElementById('f-responsavel').value,
+    captacao:document.getElementById('f-captacao').value,
+    gargalo:document.getElementById('f-gargalo').value,
+    reacao:document.getElementById('f-reacao-val').value,
+    maturidade:document.getElementById('f-maturidade-val').value,
+    objecao:document.getElementById('f-objecao').value,
+    resumo:document.getElementById('f-resumo').value,
+    proximo_passo:document.getElementById('f-proximo').value,
+    status:'Novo',
+    created_at:new Date().toISOString(),
+  };
+}
+
+function handleFormSubmit(e){
+  e.preventDefault();
+  const lead=buildLeadFromForm();
+  adjustCallCount(1);
+  saveLead(lead,'✓ Lead salvo no CRM!');
+  setPage('dashboard');
+}
+
+async function saveLead(lead,msg){
+  if(supabaseClient){
+    try{
+      const{data,error}=await supabaseClient.from('leads').insert([lead]).select();
+      if(error)throw error;
+      if(data&&data[0])lead.id=data[0].id;
+    }catch(e){lead.id='local-'+Date.now();}
+  }else{lead.id='local-'+Date.now();}
+  allLeads.unshift(lead);
+  renderAll();
+  clearForm();
+  showToast(msg);
+}
+
+function clearForm(){
+  document.getElementById('coldcall-form').reset();
+  document.getElementById('remarketing-alert').classList.remove('visible');
+  document.getElementById('script-secretaria').classList.remove('visible');
+  document.getElementById('script-default').style.display='block';
+  document.querySelectorAll('.opt-btn').forEach(b=>b.classList.remove('selected','selected-amber','selected-blue','selected-red','selected-purple'));
+  document.querySelectorAll('.react-opt').forEach(b=>b.classList.remove('sel-verde','sel-morno','sel-frio','sel-ruim'));
+  document.getElementById('f-perfil-val').value='';
+  document.getElementById('f-reacao-val').value='';
+  document.getElementById('f-maturidade-val').value='';
+}
+
+// ── KANBAN + DRAG & DROP ───────────────────────────────────────────
+let draggedLeadId=null;
+
+function renderAll(){
+  renderKanban('kanban-board',true);
+  renderKanban('kanban-board-2',false);
+  updateMetrics();
+  renderCharts();
+  updateCallCountDisplay();
+}
+
+function getFilteredLeads(forDashboard){
+  let leads=[...allLeads];
+  if(forDashboard&&meetingFilter==='sim') leads=leads.filter(l=>l.status==='Reunião');
+  if(forDashboard&&meetingFilter==='nao') leads=leads.filter(l=>l.status!=='Reunião');
+  if(!forDashboard&&pipelineFilter!=='all') leads=leads.filter(l=>l.status===pipelineFilter);
+  return leads;
+}
+
+function renderKanban(targetId,forDashboard){
+  const board=document.getElementById(targetId);
+  if(!board)return;
+  board.innerHTML='';
+  const leads=getFilteredLeads(forDashboard);
+  STAGES.forEach(stage=>{
+    const stageleads=leads.filter(l=>l.status===stage.key);
+    const col=document.createElement('div');
+    col.className='kanban-col'+(stage.key==='Remarketing'?' remarketing-col':'');
+    col.dataset.stage=stage.key;
+    col.innerHTML=`<div class="col-header"><span class="col-name">${stage.label}</span><span class="col-count">${stageleads.length}</span></div><div class="col-cards" data-stage="${stage.key}">${stageleads.length===0?'<div class="empty-col">Vazio</div>':''}</div>`;
+
+    // Drag over events
+    col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drag-over');});
+    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
+    col.addEventListener('drop',e=>{
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      if(draggedLeadId){
+        const lead=allLeads.find(l=>l.id===draggedLeadId);
+        if(lead&&lead.status!==stage.key){
+          changeStageById(draggedLeadId,stage.key);
+        }
+        draggedLeadId=null;
+      }
+    });
+
+    board.appendChild(col);
+    const cardsDiv=col.querySelector('.col-cards');
+    stageleads.forEach(lead=>{
+      const card=document.createElement('div');
+      card.className='lead-card'+(stage.key==='Remarketing'?' remarketing-card':'');
+      card.draggable=true;
+      card.dataset.leadId=lead.id;
+      card.innerHTML=`
+        <div class="card-empresa">${lead.empresa}</div>
+        <div class="card-contato">${lead.nome_contato||'—'}</div>
+        <div class="card-responsavel"><div class="dot ${getMaturidadeDot(lead.maturidade,stage.key)}"></div>${lead.responsavel||'—'}</div>
+        <div class="card-actions">
+          <button class="card-action-btn" title="Editar" onclick="event.stopPropagation();openEditModal('${lead.id}')">✎</button>
+          <button class="card-action-btn del" title="Excluir" onclick="event.stopPropagation();confirmDeleteLead('${lead.id}','${lead.empresa.replace(/'/g,"\\'")}')">✕</button>
+        </div>`;
+      card.onclick=()=>openLeadModal(lead);
+      card.addEventListener('dragstart',()=>{draggedLeadId=lead.id;card.classList.add('dragging');});
+      card.addEventListener('dragend',()=>{card.classList.remove('dragging');draggedLeadId=null;});
+      cardsDiv.appendChild(card);
+    });
+  });
+}
+
+function setMeetingFilter(f){
+  meetingFilter=f;
+  ['all','sim','nao'].forEach(v=>document.getElementById('filter-'+v).classList.toggle('active',v===f));
+  renderKanban('kanban-board',true);
+}
+
+function renderPipelineChips(){
+  const wrap=document.getElementById('pipeline-filter-chips');
+  if(!wrap)return;
+  const chips=[{v:'all',l:'Todos'},...STAGES.map(s=>({v:s.key,l:s.label}))];
+  wrap.innerHTML=chips.map(c=>`<div class="chip${pipelineFilter===c.v?' active':''}" onclick="setPipelineFilter('${c.v}')">${c.l}</div>`).join('');
+}
+
+function setPipelineFilter(f){
+  pipelineFilter=f;
+  renderPipelineChips();
+  renderKanban('kanban-board-2',false);
+}
+
+// ── CHARTS ─────────────────────────────────────────────────────────
+function renderCharts(){
+  const stageOrder=['Novo','Contato','Interessado','Reunião','Proposta','Fechado'];
+  const counts=stageOrder.map(s=>allLeads.filter(l=>l.status===s).length);
+  const colors=['#3b82f6','#f59e0b','#a78bfa','#00e676','#ff8a00','#00c853'];
+  const wrap=document.getElementById('funnelChart');
+  if(!wrap)return;
+  const maxVal=Math.max(...counts,1);
+  const W=wrap.offsetWidth||480;
+  const H=180;
+  const padL=28,padR=10,padT=10,padB=36;
+  const chartW=W-padL-padR;
+  const chartH=H-padT-padB;
+  const barCount=stageOrder.length;
+  const barGap=8;
+  const barW=(chartW-(barGap*(barCount-1)))/barCount;
+
+  // Grid lines
+  const gridLines=[0,0.25,0.5,0.75,1].map(f=>{
+    const y=padT+chartH*(1-f);
+    const val=Math.round(f*maxVal);
+    return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#2a2a32" stroke-width="1"/>
+    <text x="${padL-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#60606a">${val}</text>`;
+  }).join('');
+
+  // Bars
+  const bars=stageOrder.map((label,i)=>{
+    const x=padL+i*(barW+barGap);
+    const barH=counts[i]===0?2:Math.max(4,(counts[i]/maxVal)*chartH);
+    const y=padT+chartH-barH;
+    const col=colors[i];
+    const shortLabel=label.length>7?label.substring(0,7)+'…':label;
+    return `
+      <rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3"
+        fill="${col}22" stroke="${col}" stroke-width="1.5">
+        <title>${label}: ${counts[i]} lead${counts[i]!==1?'s':''}</title>
+      </rect>
+      ${counts[i]>0?`<text x="${x+barW/2}" y="${y-5}" text-anchor="middle" font-size="11" font-weight="700" fill="${col}">${counts[i]}</text>`:''}
+      <text x="${x+barW/2}" y="${H-padB+16}" text-anchor="middle" font-size="10" fill="#60606a">${shortLabel}</text>
+    `;
+  }).join('');
+
+  wrap.innerHTML=`<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">${gridLines}${bars}</svg>`;
+
+  // Conversion stats
+  const total=allLeads.length||1;
+  const reunioes=allLeads.filter(l=>l.status==='Reunião').length;
+  const fechados=allLeads.filter(l=>l.status==='Fechado').length;
+  const calls=callCount||1;
+  const txLig=Math.round((reunioes/calls)*100);
+  const txFech=Math.round((fechados/total)*100);
+
+  document.getElementById('conversion-rate-label').textContent=`${txLig}% reunião/ligação`;
+
+  document.getElementById('conversion-stats').innerHTML=`
+    <div class="conv-row"><span class="conv-label">Ligações → Reunião</span><span class="conv-value conv-green">${txLig}%</span></div>
+    <div class="conv-row"><span class="conv-label">Leads → Fechado</span><span class="conv-value conv-amber">${txFech}%</span></div>
+    <div class="conv-row"><span class="conv-label">Remarketing</span><span class="conv-value conv-purple">${allLeads.filter(l=>l.status==='Remarketing').length}</span></div>
+    <div class="conv-row"><span class="conv-label">Perdidos</span><span class="conv-value" style="color:var(--red)">${allLeads.filter(l=>l.status==='Perdido').length}</span></div>
+  `;
+}
+
+// ── METRICS ────────────────────────────────────────────────────────
+function updateMetrics(){
+  document.getElementById('m-total').textContent=allLeads.length;
+  document.getElementById('m-reuniao').textContent=allLeads.filter(l=>l.status==='Reunião').length;
+  document.getElementById('m-proposta').textContent=allLeads.filter(l=>l.status==='Proposta').length;
+  document.getElementById('m-fechado').textContent=allLeads.filter(l=>l.status==='Fechado').length;
+  document.getElementById('m-remarketing').textContent=allLeads.filter(l=>l.status==='Remarketing').length;
+}
+
+function getMaturidadeDot(m,status){if(status==='Remarketing')return'purple';if(m==='quente')return'';if(m==='morno')return'amber';return'blue';}
+function getStatusCls(s){const m={'Novo':'s-novo','Contato':'s-contato','Interessado':'s-interessado','Reunião':'s-reuniao','Proposta':'s-proposta','Fechado':'s-fechado','Perdido':'s-perdido','Remarketing':'s-remarketing'};return m[s]||'s-novo';}
+
+// ── CHANGE STAGE ──────────────────────────────────────────────────
+async function changeStageById(id,newStatus){
+  const lead=allLeads.find(l=>l.id===id);
+  if(!lead)return;
+  lead.status=newStatus;
+  if(supabaseClient){try{await supabaseClient.from('leads').update({status:newStatus}).eq('id',id);}catch(e){}}
+  renderAll();
+  showToast('✓ Movido para: '+newStatus);
+}
+
+async function changeStage(id,newStatus,btn){
+  document.querySelectorAll('.stage-btn').forEach(b=>b.classList.remove('active-stage'));
+  btn.classList.add('active-stage');
+  await changeStageById(id,newStatus);
+}
+
+// ── DELETE LEAD ────────────────────────────────────────────────────
+function confirmDeleteLead(id,empresa){
+  showConfirm('Excluir Lead','Excluir "'+empresa+'" do CRM? Esta ação não pode ser desfeita.',async()=>{
+    if(supabaseClient){try{await supabaseClient.from('leads').delete().eq('id',id);}catch(e){}}
+    allLeads=allLeads.filter(l=>l.id!==id);
+    renderAll();
+    showToast('🗑 Lead excluído');
+  });
+}
+
+// ── CONFIRM DIALOG ─────────────────────────────────────────────────
+function showConfirm(title,msg,onYes){
+  document.getElementById('confirm-title').textContent=title;
+  document.getElementById('confirm-msg').textContent=msg;
+  document.getElementById('confirm-yes').onclick=()=>{onYes();closeConfirm();};
+  document.getElementById('confirm-overlay').style.display='flex';
+}
+function closeConfirm(){document.getElementById('confirm-overlay').style.display='none';}
+
+// ── MODAL DETALHES ─────────────────────────────────────────────────
+function closeModal(e){
+  if(!e||e.target.id==='modal'){
+    document.getElementById('modal').style.display='none';
+    currentModalLead=null;
+    isEditMode=false;
+  }
+}
+
+function openLeadModal(lead){
+  currentModalLead=lead;
+  isEditMode=false;
+  renderModalView(lead);
+  document.getElementById('modal').style.display='flex';
+}
+
+function renderModalView(lead){
+  document.getElementById('modal-title').textContent=lead.empresa;
+  document.getElementById('modal-edit-btn').textContent='✎ Editar';
+  const stagePicker=STAGES.map(s=>`<button class="stage-btn${lead.status===s.key?' active-stage':''}${s.key==='Remarketing'?' remarketing-stage':''}" onclick="changeStage('${lead.id}','${s.key}',this)">${s.label}</button>`).join('');
+  const remarketing=lead.status==='Remarketing'?`<div class="remarketing-banner">🎯 Lead em Remarketing — abordagem por anúncios segmentados</div>`:'';
+  document.getElementById('modal-body').innerHTML=`
+    ${remarketing}
+    <div class="detail-row">
+      <div class="detail-field"><div class="detail-label">Contato</div><div class="detail-value">${lead.nome_contato||'—'}</div></div>
+      <div class="detail-field"><div class="detail-label">Perfil</div><div class="detail-value">${lead.perfil||'—'}</div></div>
+      <div class="detail-field"><div class="detail-label">Responsável</div><div class="detail-value">${lead.responsavel||'—'}</div></div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-field"><div class="detail-label">Maturidade</div><div class="detail-value">${lead.maturidade||'—'}</div></div>
+      <div class="detail-field"><div class="detail-label">Status</div><div class="detail-value"><span class="status-pill ${getStatusCls(lead.status)}">${lead.status}</span></div></div>
+      <div class="detail-field"><div class="detail-label">Reação</div><div class="detail-value">${formatReacao(lead.reacao)}</div></div>
+    </div>
+    ${lead.captacao?`<div style="margin-bottom:12px"><div class="detail-label" style="margin-bottom:4px">Captação atual</div><div class="detail-area">${lead.captacao}</div></div>`:''}
+    ${lead.gargalo?`<div style="margin-bottom:12px"><div class="detail-label" style="margin-bottom:4px">Gargalo identificado</div><div class="detail-area">${lead.gargalo}</div></div>`:''}
+    ${lead.objecao?`<div style="margin-bottom:12px"><div class="detail-label" style="margin-bottom:4px">Objeção</div><div class="detail-area">${lead.objecao}</div></div>`:''}
+    ${lead.resumo?`<div style="margin-bottom:12px"><div class="detail-label" style="margin-bottom:4px">Resumo da ligação</div><div class="detail-area">${lead.resumo}</div></div>`:''}
+    ${lead.proximo_passo?`<div style="margin-bottom:16px"><div class="detail-label" style="margin-bottom:4px">Próximo passo</div><div class="detail-area" style="border-color:var(--green)">${lead.proximo_passo}</div></div>`:''}
+    <hr class="section-divider">
+    <div><div class="detail-label" style="margin-bottom:8px">Mover para etapa</div><div class="stage-picker">${stagePicker}</div></div>
+    <button class="copy-btn" id="copy-report-btn" onclick="copyReport(${JSON.stringify(lead).replace(/"/g,'&quot;')})">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V3a1 1 0 00-1-1H3a1 1 0 00-1 1v7a1 1 0 001 1h2"/></svg>
+      Copiar Relatório Completo
+    </button>
+  `;
+}
+
+// ── EDIT MODAL ─────────────────────────────────────────────────────
+function openEditModal(id){
+  const lead=allLeads.find(l=>l.id===id);
+  if(!lead)return;
+  currentModalLead=lead;
+  isEditMode=true;
+  renderModalEdit(lead);
+  document.getElementById('modal').style.display='flex';
+}
+
+function toggleEditMode(){
+  if(!currentModalLead)return;
+  if(isEditMode){
+    // Save and switch to view
+    saveEditFromModal();
+  }else{
+    isEditMode=true;
+    renderModalEdit(currentModalLead);
+  }
+}
+
+function renderModalEdit(lead){
+  document.getElementById('modal-title').textContent='Editar: '+lead.empresa;
+  document.getElementById('modal-edit-btn').textContent='💾 Salvar';
+  const stageOpts=STAGES.map(s=>`<option value="${s.key}"${lead.status===s.key?' selected':''}>${s.label}</option>`).join('');
+  document.getElementById('modal-body').innerHTML=`
+    <div class="edit-field-row"><label class="edit-label">Empresa</label><input class="edit-input" id="edit-empresa" value="${lead.empresa||''}"></div>
+    <div class="edit-field-row"><label class="edit-label">Nome Contato</label><input class="edit-input" id="edit-contato" value="${lead.nome_contato||''}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="edit-field-row" style="margin:0"><label class="edit-label">Perfil</label>
+        <select class="edit-select" id="edit-perfil">
+          <option value="">—</option>
+          <option value="dono"${lead.perfil==='dono'?' selected':''}>Dono / Sócio</option>
+          <option value="comercial"${lead.perfil==='comercial'?' selected':''}>Gerente Comercial</option>
+          <option value="secretaria"${lead.perfil==='secretaria'?' selected':''}>Secretária</option>
+          <option value="marketing"${lead.perfil==='marketing'?' selected':''}>Marketing</option>
+        </select>
+      </div>
+      <div class="edit-field-row" style="margin:0"><label class="edit-label">Responsável</label><input class="edit-input" id="edit-responsavel" value="${lead.responsavel||''}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="edit-field-row" style="margin:0"><label class="edit-label">Status</label>
+        <select class="edit-select" id="edit-status">${stageOpts}</select>
+      </div>
+      <div class="edit-field-row" style="margin:0"><label class="edit-label">Maturidade</label>
+        <select class="edit-select" id="edit-maturidade">
+          <option value="">—</option>
+          <option value="quente"${lead.maturidade==='quente'?' selected':''}>🔥 Quente</option>
+          <option value="morno"${lead.maturidade==='morno'?' selected':''}>☀️ Morno</option>
+          <option value="frio"${lead.maturidade==='frio'?' selected':''}>❄️ Frio</option>
+        </select>
+      </div>
+    </div>
+    <div class="edit-field-row"><label class="edit-label">Captação Atual</label><textarea class="edit-input edit-textarea" id="edit-captacao">${lead.captacao||''}</textarea></div>
+    <div class="edit-field-row"><label class="edit-label">Gargalo</label><textarea class="edit-input edit-textarea" id="edit-gargalo">${lead.gargalo||''}</textarea></div>
+    <div class="edit-field-row"><label class="edit-label">Objeção</label><input class="edit-input" id="edit-objecao" value="${lead.objecao||''}"></div>
+    <div class="edit-field-row"><label class="edit-label">Resumo da Ligação</label><textarea class="edit-input edit-textarea" id="edit-resumo" style="min-height:90px">${lead.resumo||''}</textarea></div>
+    <div class="edit-field-row"><label class="edit-label">Próximo Passo</label><input class="edit-input" id="edit-proximo" value="${lead.proximo_passo||''}"></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-green" style="flex:1;justify-content:center" onclick="saveEditFromModal()">💾 Salvar Alterações</button>
+      <button class="btn" onclick="isEditMode=false;renderModalView(currentModalLead)">Cancelar</button>
+    </div>
+  `;
+}
+
+async function saveEditFromModal(){
+  const lead=currentModalLead;
+  if(!lead)return;
+  lead.empresa=document.getElementById('edit-empresa').value||lead.empresa;
+  lead.nome_contato=document.getElementById('edit-contato').value;
+  lead.perfil=document.getElementById('edit-perfil').value;
+  lead.responsavel=document.getElementById('edit-responsavel').value;
+  lead.status=document.getElementById('edit-status').value;
+  lead.maturidade=document.getElementById('edit-maturidade').value;
+  lead.captacao=document.getElementById('edit-captacao').value;
+  lead.gargalo=document.getElementById('edit-gargalo').value;
+  lead.objecao=document.getElementById('edit-objecao').value;
+  lead.resumo=document.getElementById('edit-resumo').value;
+  lead.proximo_passo=document.getElementById('edit-proximo').value;
+  if(supabaseClient){
+    try{await supabaseClient.from('leads').update(lead).eq('id',lead.id);}catch(e){}
+  }
+  isEditMode=false;
+  renderAll();
+  renderModalView(lead);
+  showToast('✓ Lead atualizado!');
+}
+
+function formatReacao(r){const m={'muito_aberto':'🔥 Muito aberto','aberto':'😊 Aberto','neutro':'😐 Neutro','resistente':'😤 Resistente','nao_atendeu':'📵 Não atendeu'};return m[r]||r||'—';}
+
+// ── COPIAR RELATÓRIO ───────────────────────────────────────────────
+function copyReport(lead){
+  const date=lead.created_at?new Date(lead.created_at).toLocaleDateString('pt-BR'):'—';
+  const text=`══════════════════════════════════
+LOPY AGENCY — RELATÓRIO DE LEAD
+══════════════════════════════════
+
+EMPRESA          ${lead.empresa||'—'}
+CONTATO          ${lead.nome_contato||'—'}
+PERFIL           ${lead.perfil||'—'}
+RESPONSÁVEL      ${lead.responsavel||'—'}
+DATA             ${date}
+
+──────────────────────────────────
+STATUS & MATURIDADE
+──────────────────────────────────
+Status           ${lead.status||'—'}
+Maturidade       ${lead.maturidade||'—'}
+Reação           ${formatReacao(lead.reacao)}
+
+──────────────────────────────────
+DIAGNÓSTICO
+──────────────────────────────────
+Captação atual
+${lead.captacao||'Não informado'}
+
+Gargalo identificado
+${lead.gargalo||'Não informado'}
+
+Objeção
+${lead.objecao||'Nenhuma registrada'}
+
+──────────────────────────────────
+RESUMO DA LIGAÇÃO
+──────────────────────────────────
+${lead.resumo||'Sem resumo'}
+
+──────────────────────────────────
+PRÓXIMO PASSO
+──────────────────────────────────
+${lead.proximo_passo||'A definir'}
+
+══════════════════════════════════
+Gerado por Lopy CRM v3
+══════════════════════════════════`;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.getElementById('copy-report-btn');
+    if(btn){btn.classList.add('copied');btn.textContent='✓ Relatório copiado!';}
+    showToast('✓ Copiado para área de transferência');
+    setTimeout(()=>{if(btn){btn.classList.remove('copied');btn.innerHTML='<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V3a1 1 0 00-1-1H3a1 1 0 00-1 1h2"/></svg> Copiar Relatório Completo';}},2500);
+  }).catch(()=>showToast('Erro ao copiar. Tente manualmente.'));
+}
+
+// ── NAV ─────────────────────────────────────────────────────────────
+function setPage(p){
+  ['dashboard','pipeline','coldcall','config'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'block':'none';});
+  document.querySelectorAll('.nav-item').forEach((el,i)=>{el.classList.toggle('active',['dashboard','pipeline','coldcall','config'][i]===p);});
+  const titles={dashboard:'Dashboard',pipeline:'Pipeline de Vendas',coldcall:'Nova Ligação — Cold Call',config:'Configurações'};
+  document.getElementById('page-title').textContent=titles[p]||p;
+  if(p==='pipeline')renderPipelineChips();
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ── SUPABASE ────────────────────────────────────────────────────────
+function loadConfig(){try{const s=localStorage.getItem('lopy_cfg');if(s){config=JSON.parse(s);return true;}}catch(e){}return false;}
+function initSupabase(){if(!config.url||!config.key){setConnStatus(false,'Sem conexão');return false;}try{supabaseClient=window.supabase.createClient(config.url,config.key);return true;}catch(e){setConnStatus(false,'Erro');return false;}}
+function setConnStatus(ok,label){document.getElementById('conn-dot').className='conn-dot'+(ok?' green':' red');document.getElementById('conn-label').textContent=label;}
+
+async function saveConfig(){
+  config.url=document.getElementById('cfg-url').value.trim();
+  config.key=document.getElementById('cfg-key').value.trim();
+  if(!config.url||!config.key){showToast('Preencha URL e Key.');return;}
+  localStorage.setItem('lopy_cfg',JSON.stringify(config));
+  if(initSupabase()){
+    try{const{error}=await supabaseClient.from('leads').select('id').limit(1);if(error)throw error;setConnStatus(true,'Conectado');showToast('✓ Supabase conectado!');await loadLeads();}
+    catch(e){setConnStatus(false,'Erro de conexão');showToast('Erro: '+e.message);}
+  }
+}
+
+async function loadLeads(){
+  if(!supabaseClient){allLeads=getSampleLeads();renderAll();return;}
+  try{const{data,error}=await supabaseClient.from('leads').select('*').order('created_at',{ascending:false});if(error)throw error;allLeads=data||[];renderAll();}
+  catch(e){allLeads=getSampleLeads();renderAll();}
+}
+
+function getSampleLeads(){
+  return[
+    {id:'1',empresa:'Casa Moda Premium',nome_contato:'Ricardo Alves',perfil:'dono',status:'Reunião',responsavel:'Nícolas',maturidade:'quente',reacao:'muito_aberto',resumo:'Muito aberto, quer resultado rápido. Reunião marcada para quinta.',captacao:'Indicação e Instagram',gargalo:'Não tem previsibilidade de clientes novos',objecao:'',proximo_passo:'Reunião quinta 14h',created_at:new Date().toISOString()},
+    {id:'2',empresa:'Joalheria Rocha',nome_contato:'Fernanda Rocha',perfil:'dono',status:'Interessado',responsavel:'Cauã',maturidade:'morno',reacao:'aberto',resumo:'Interessada mas quer ver cases antes.',captacao:'Boca a boca',gargalo:'Depende muito de indicação',objecao:'Quer ver resultados anteriores',proximo_passo:'Enviar cases até sexta',created_at:new Date().toISOString()},
+    {id:'3',empresa:'Ótica Visão',nome_contato:'Recepção',perfil:'secretaria',status:'Remarketing',responsavel:'Nícolas',maturidade:'frio',reacao:'nao_atendeu',resumo:'Secretária não passou o contato.',captacao:'Desconhecido',gargalo:'Não chegou ao decisor',objecao:'Gatekeeper — não passou',proximo_passo:'Remarketing segmentado',created_at:new Date().toISOString()},
+    {id:'4',empresa:'Boutique Elevé',nome_contato:'Ana Cristina',perfil:'dono',status:'Proposta',responsavel:'Cauã',maturidade:'quente',reacao:'muito_aberto',resumo:'Pediu proposta formal. Quer resultado em 60 dias.',captacao:'Google e Instagram',gargalo:'Taxa de conversão baixa',objecao:'',proximo_passo:'Enviar proposta segunda',created_at:new Date().toISOString()},
+    {id:'5',empresa:'Studio Corpo',nome_contato:'Paulo Mendes',perfil:'dono',status:'Novo',responsavel:'Nícolas',maturidade:'frio',reacao:'neutro',resumo:'Não atendeu. Deixou WhatsApp.',captacao:'Desconhecido',gargalo:'',objecao:'',proximo_passo:'Contato via WhatsApp',created_at:new Date().toISOString()},
+    {id:'6',empresa:'Autolux Imports',nome_contato:'Juliana Costa',perfil:'marketing',status:'Fechado',responsavel:'Cauã',maturidade:'quente',reacao:'muito_aberto',resumo:'Fechou contrato de 3 meses.',captacao:'Google Ads',gargalo:'Não sabia analisar resultados',objecao:'',proximo_passo:'Onboarding segunda',created_at:new Date().toISOString()},
+  ];
+}
+
+// ── INIT ────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',function(){
+  loadConfig();
+  document.getElementById('cfg-url').value=config.url||'';
+  document.getElementById('cfg-key').value=config.key||'';
+  if(config.url&&config.key){if(initSupabase())setConnStatus(true,'Conectado');}else{setConnStatus(false,'Configurar Supabase');}
+  updateCallCountDisplay();
+  loadLeads();
+});
+</script>
+</body>
+</html>
